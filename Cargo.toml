@@ -1,0 +1,11 @@
+[package]
+name = "code_cnt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = {version="4.5", features=["derive"]}
+walkdir = "2"
+ignore  = "0.4"
+itertools = "0.14.0"
+tempfile = "3.23.0"
