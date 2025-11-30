@@ -1,6 +1,7 @@
 use clap::Parser;
 use ignore::WalkBuilder;
-use std::fs::read_dir;
+use std::fs::{self, read_dir, File};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -14,6 +15,40 @@ fn main() {
     let arg_dir = args.dir;
 
     println!("Processing directory: {}", arg_dir.display());
+
+    let cnt = count_lines(&arg_dir).unwrap();
+    println!(
+        "Lines in {} : {}",
+        arg_dir.file_name().unwrap().display(),
+        cnt
+    );
+}
+
+fn count_lines(path: &Path) -> Result<u32, std::io::Error> {
+    if !path.is_file() {
+        println!("Not a file")
+    }
+    let cnt = BufReader::new(File::open(path)?)
+        .lines()
+        .map_while(Result::ok)
+        .filter(|line| {
+            let trimmed = line.trim();
+            let mut oneline_comment = false;
+
+            if trimmed.len() >= 2 && &trimmed[..2] == "//" {
+                oneline_comment = true;
+            }
+            println!(
+                "{} :: !is_empty:{} || !oneliner {}",
+                trimmed,
+                !trimmed.is_empty(),
+                !oneline_comment,
+            );
+            !trimmed.is_empty() && !oneline_comment
+        })
+        .count() as u32;
+
+    Ok(cnt)
 }
 
 fn get_file_list_auto_walkdir(dir: &Path) -> Vec<PathBuf> {
