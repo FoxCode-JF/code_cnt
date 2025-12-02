@@ -1,6 +1,7 @@
 use clap::Parser;
 use ignore::WalkBuilder;
-use std::fs::{self, read_dir, File};
+use std::ffi::OsStr;
+use std::fs::{read_dir, File};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
@@ -10,23 +11,67 @@ struct Args {
     dir: PathBuf,
 }
 
+const LANG_CNT: usize = 6;
+
+enum Lang {
+    Rust = 0,
+    Python,
+    C,
+    Cpp,
+    JavaScript,
+    Lua,
+    Verilog,
+}
+
 fn main() {
     let args = Args::parse();
     let arg_dir = args.dir;
 
     println!("Processing directory: {}", arg_dir.display());
 
-    let cnt = count_lines(&arg_dir).unwrap();
-    println!(
-        "Lines in {} : {}",
-        arg_dir.file_name().unwrap().display(),
-        cnt
-    );
+    //let cnt = count_lines(&arg_dir).unwrap();
+    //println!(
+    //    "Lines in {} : {}",
+    //    arg_dir.file_name().unwrap().display(),
+    //    cnt
+    //);
+    let mut lang_grouped_files: [Vec<PathBuf>; LANG_CNT + 1] = Default::default();
+    let _ = get_file_list_auto_ignore(&arg_dir, &mut lang_grouped_files);
+
+    println!("LANG STATS :)");
+    for (idx, lang) in lang_grouped_files.iter().enumerate() {
+        println!("\n********************\n {}\n{:#?}", idx, lang);
+        let mut lines_cnt = 0;
+        for file_path in lang.iter() {
+            match count_lines(file_path) {
+                Ok(val) => lines_cnt += val,
+                Err(e) => eprintln!("{}, path: {}", e, file_path.display()),
+            }
+        }
+        println!("Lines of Code {}", lines_cnt);
+    }
+}
+
+fn lang_from_ext(ext: &OsStr) -> Option<Lang> {
+    //println!("Current ext: {}", ext.to_str().unwrap());
+    match ext.to_str() {
+        Some("rs") => Some(Lang::Rust),
+        Some("py") => Some(Lang::Python),
+        Some("c") | Some("h") => Some(Lang::C),
+        Some("cpp") | Some("hpp") | Some("cxx") | Some("cc") => Some(Lang::Cpp),
+        Some("js") => Some(Lang::JavaScript),
+        Some("lua") => Some(Lang::Lua),
+        Some("v") => Some(Lang::Verilog),
+        _ => None,
+    }
 }
 
 fn count_lines(path: &Path) -> Result<u32, std::io::Error> {
     if !path.is_file() {
-        println!("Not a file")
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "File not found",
+        ));
     }
     let cnt = BufReader::new(File::open(path)?)
         .lines()
@@ -35,15 +80,15 @@ fn count_lines(path: &Path) -> Result<u32, std::io::Error> {
             let trimmed = line.trim();
             let mut oneline_comment = false;
 
-            if trimmed.len() >= 2 && &trimmed[..2] == "//" {
+            //println!(
+            //    "{} :: !is_empty:{} || !oneliner {}",
+            //    trimmed,
+            //    !trimmed.is_empty(),
+            //    !oneline_comment,
+            //);
+            if trimmed.len() >= 2 && trimmed.starts_with("//") {
                 oneline_comment = true;
             }
-            println!(
-                "{} :: !is_empty:{} || !oneliner {}",
-                trimmed,
-                !trimmed.is_empty(),
-                !oneline_comment,
-            );
             !trimmed.is_empty() && !oneline_comment
         })
         .count() as u32;
@@ -64,7 +109,11 @@ fn get_file_list_auto_walkdir(dir: &Path) -> Vec<PathBuf> {
     res
 }
 
-fn get_file_list_auto_ignore(dir: &Path) -> Vec<PathBuf> {
+fn get_file_list_auto_ignore(
+    dir: &Path,
+    lang_grouped_files: &mut [Vec<PathBuf>; LANG_CNT + 1], // +1 to make room for all the languages
+                                                           // that are not supported yet
+) -> Vec<PathBuf> {
     let mut res = Vec::new();
     println!("ignore start");
     for entry in WalkBuilder::new(dir)
@@ -74,8 +123,32 @@ fn get_file_list_auto_ignore(dir: &Path) -> Vec<PathBuf> {
         .build()
         .filter_map(Result::ok)
     {
-        //println!("entry {}", entry.clone().into_path().display());
         if entry.path().is_file() {
+            if let Some(ext) = entry.path().extension() {
+                match lang_from_ext(ext) {
+                    Some(Lang::Cpp) => {
+                        lang_grouped_files[Lang::Cpp as usize].push(entry.path().to_path_buf())
+                    }
+                    Some(Lang::Python) => {
+                        lang_grouped_files[Lang::Python as usize].push(entry.path().to_path_buf())
+                    }
+                    Some(Lang::Rust) => {
+                        lang_grouped_files[Lang::Rust as usize].push(entry.path().to_path_buf())
+                    }
+                    Some(Lang::Lua) => {
+                        lang_grouped_files[Lang::Lua as usize].push(entry.path().to_path_buf())
+                    }
+                    Some(Lang::C) => {
+                        lang_grouped_files[Lang::C as usize].push(entry.path().to_path_buf())
+                    }
+                    Some(Lang::JavaScript) => lang_grouped_files[Lang::JavaScript as usize]
+                        .push(entry.path().to_path_buf()),
+                    Some(Lang::Verilog) => {
+                        lang_grouped_files[Lang::Verilog as usize].push(entry.path().to_path_buf())
+                    }
+                    None => lang_grouped_files[LANG_CNT].push(entry.path().to_path_buf()),
+                }
+            }
             res.push(entry.into_path());
         }
     }
@@ -141,9 +214,11 @@ fn verify_variants_return_same_files() {
     }
 
     let dir = build_test_tree(&root);
+
+    let mut lang_grouped_files: [Vec<PathBuf>; LANG_CNT + 1] = Default::default();
     println!("{}", dir.display());
     let mut walkdir_paths = get_file_list_auto_walkdir(&dir);
-    let mut ignore_paths = get_file_list_auto_ignore(&dir);
+    let mut ignore_paths = get_file_list_auto_ignore(&dir, &mut lang_grouped_files);
     let mut manual_paths = get_file_list_manual(&dir);
 
     ignore_paths.sort();
