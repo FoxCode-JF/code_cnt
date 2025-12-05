@@ -1,3 +1,6 @@
+[workspace.metadata.clippy]
+pedantic = true
+
 [package]
 name = "code_cnt"
 version = "0.1.0"
