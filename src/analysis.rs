@@ -78,7 +78,7 @@ fn is_block_comment(line: &str, is_inside_block: &mut bool, comment_type: &Comme
 #[cfg(test)]
 mod tests {
     mod count_lines {
-        use crate::analysis::{count_lines, is_block_comment, is_single_line_comment};
+        use crate::analysis::count_lines;
         use crate::registry::{Block, CommentType};
         use std::{io::Write, path::Path};
         use tempfile::NamedTempFile;
@@ -468,5 +468,120 @@ mod tests {
         //    let res = count_lines(file.path(), &comments);
         //    assert_eq!(res.unwrap(), 0);
         //}
+    }
+    mod is_single_line_comment {
+        use crate::analysis::is_single_line_comment;
+
+        #[test]
+        fn single_line_comment_c_style() {
+            let res = is_single_line_comment(
+                "// c style comment",
+                &["%".to_string(), "#".to_string(), "//".to_string()],
+            );
+            assert_eq!(res, true);
+        }
+
+        #[test]
+        fn single_line_comment_python() {
+            let res = is_single_line_comment(
+                "# python comment",
+                &["%".to_string(), "#".to_string(), "//".to_string()],
+            );
+            assert_eq!(res, true);
+        }
+
+        #[test]
+        fn single_line_comment_latex() {
+            let res = is_single_line_comment(
+                "% latex comment",
+                &["%".to_string(), "#".to_string(), "//".to_string()],
+            );
+            assert_eq!(res, true);
+        }
+
+        #[test]
+        fn single_line_comment_not_a_comment() {
+            let res = is_single_line_comment(
+                "! this is not a one-line comment",
+                &["%".to_string(), "#".to_string(), "//".to_string()],
+            );
+            assert_eq!(res, false);
+        }
+    }
+    mod is_block_comment {
+        use crate::analysis::is_block_comment;
+        use crate::registry::{Block, CommentType};
+
+        #[test]
+        fn block_comment_valid_single_line_c_style_no_code() {
+            let mut is_inside_block = false;
+            let res = is_block_comment(
+                "/* single line */",
+                &mut is_inside_block,
+                &CommentType {
+                    line: vec!["//".to_string()],
+                    block: Block {
+                        open: "/*".to_string(),
+                        close: "*/".to_string(),
+                    },
+                },
+            );
+            assert!(res);
+            assert!(!is_inside_block);
+        }
+
+        #[test]
+        fn block_comment_valid_single_line_c_style_with_code_and_multiline_start() {
+            let mut is_inside_block = false;
+            let res = is_block_comment(
+                "/* single line */ code /* comment */ code /* another",
+                &mut is_inside_block,
+                &CommentType {
+                    line: vec!["//".to_string()],
+                    block: Block {
+                        open: "/*".to_string(),
+                        close: "*/".to_string(),
+                    },
+                },
+            );
+            assert!(!res);
+            assert!(is_inside_block);
+        }
+
+        #[test]
+        fn block_comment_valid_single_line_c_style_with_code_and_multiline_end() {
+            let mut is_inside_block = true;
+            let res = is_block_comment(
+                "still a comment */ code! ",
+                &mut is_inside_block,
+                &CommentType {
+                    line: vec!["//".to_string()],
+                    block: Block {
+                        open: "/*".to_string(),
+                        close: "*/".to_string(),
+                    },
+                },
+            );
+            assert!(!res);
+            assert!(!is_inside_block);
+        }
+
+        #[test]
+        fn block_comment_valid_single_line_c_style_inside_multiline_no_code() {
+            let mut is_inside_block = true;
+            let res = is_block_comment(
+                "// anything here!",
+                &mut is_inside_block,
+                &CommentType {
+                    line: vec!["//".to_string()],
+                    block: Block {
+                        open: "/*".to_string(),
+                        close: "*/".to_string(),
+                    },
+                },
+            );
+            assert!(res);
+            assert!(is_inside_block);
+        }
     }
 }
