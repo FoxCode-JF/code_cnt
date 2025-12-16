@@ -478,7 +478,7 @@ mod tests {
                 "// c style comment",
                 &["%".to_string(), "#".to_string(), "//".to_string()],
             );
-            assert_eq!(res, true);
+            assert!(res);
         }
 
         #[test]
@@ -487,7 +487,7 @@ mod tests {
                 "# python comment",
                 &["%".to_string(), "#".to_string(), "//".to_string()],
             );
-            assert_eq!(res, true);
+            assert!(res);
         }
 
         #[test]
@@ -496,7 +496,7 @@ mod tests {
                 "% latex comment",
                 &["%".to_string(), "#".to_string(), "//".to_string()],
             );
-            assert_eq!(res, true);
+            assert!(res);
         }
 
         #[test]
@@ -505,7 +505,7 @@ mod tests {
                 "! this is not a one-line comment",
                 &["%".to_string(), "#".to_string(), "//".to_string()],
             );
-            assert_eq!(res, false);
+            assert!(!res);
         }
     }
     mod is_block_comment {

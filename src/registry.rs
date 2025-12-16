@@ -1,4 +1,5 @@
 use crate::analysis::count_lines;
+use crate::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, ConfigError};
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -12,10 +13,51 @@ pub(crate) struct CommentType {
     pub(crate) line: Vec<String>,
     pub(crate) block: Block,
 }
+
+impl TryFrom<Option<CfgCommentType>> for CommentType {
+    type Error = ConfigError;
+
+    fn try_from(value: Option<CfgCommentType>) -> Result<Self, Self::Error> {
+        if let Some(comment) = value {
+            if let Some(line) = comment.line {
+                if !line.is_empty() {
+                    return Ok(Self {
+                        line,
+                        block: comment.block.try_into()?,
+                    });
+                }
+                {
+                    Err(ConfigError::LineCommentMissing)
+                }
+            } else {
+                Err(ConfigError::LineCommentMissing)
+            }
+        } else {
+            Err(ConfigError::CommentsMissing)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Block {
     pub(crate) open: String,
     pub(crate) close: String,
+}
+
+impl TryFrom<Option<CfgBlock>> for Block {
+    type Error = ConfigError;
+
+    fn try_from(value: Option<CfgBlock>) -> Result<Self, Self::Error> {
+        if let Some(block) = value {
+            if let (Some(open), Some(close)) = (block.open, block.close) {
+                Ok(Self { open, close })
+            } else {
+                Err(ConfigError::InvalidBlockComment)
+            }
+        } else {
+            Err(ConfigError::BlockCommentMissing)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -42,9 +84,38 @@ struct LangStats {
 }
 
 #[derive(Debug)]
-struct LangEntry {
+pub(crate) struct LangEntry {
     spec: LangSpec,
     stats: LangStats,
+}
+
+impl TryFrom<Option<CfgLangEntry>> for LangEntry {
+    type Error = ConfigError;
+
+    fn try_from(value: Option<CfgLangEntry>) -> Result<Self, Self::Error> {
+        if let Some(entry) = value {
+            if let Some(name) = entry.name {
+                if let Some(extensions) = entry.extensions {
+                    let spec = LangSpec::new(
+                        name,
+                        extensions.into_iter().map(OsString::from).collect(),
+                        entry.comments.try_into()?,
+                    );
+                    let stats = LangStats {
+                        files: HashSet::new(),
+                        loc: 0,
+                    };
+                    Ok(Self { spec, stats })
+                } else {
+                    Err(ConfigError::ExtensionMissing)
+                }
+            } else {
+                Err(ConfigError::LanguageNameMissing)
+            }
+        } else {
+            Err(ConfigError::LanguagesMissing)
+        }
+    }
 }
 
 #[derive(Debug)]
