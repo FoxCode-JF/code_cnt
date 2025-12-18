@@ -51,7 +51,7 @@ pub(crate) struct CfgLangEntry {
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub dir: PathBuf,
-    languages: Vec<CfgLangEntry>,
+    pub(crate) languages: Vec<CfgLangEntry>,
 }
 
 impl Config {

@@ -1,5 +1,5 @@
 use crate::analysis::count_lines;
-use crate::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, ConfigError};
+use crate::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, Config, ConfigError};
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -11,30 +11,23 @@ struct LangId(usize);
 #[derive(Debug)]
 pub(crate) struct CommentType {
     pub(crate) line: Vec<String>,
-    pub(crate) block: Block,
+    pub(crate) block: Option<Block>,
 }
 
-impl TryFrom<Option<CfgCommentType>> for CommentType {
+impl TryFrom<CfgCommentType> for CommentType {
     type Error = ConfigError;
 
-    fn try_from(value: Option<CfgCommentType>) -> Result<Self, Self::Error> {
-        if let Some(comment) = value {
-            if let Some(line) = comment.line {
-                if !line.is_empty() {
-                    return Ok(Self {
-                        line,
-                        block: comment.block.try_into()?,
-                    });
-                }
-                {
-                    Err(ConfigError::LineCommentMissing)
-                }
-            } else {
-                Err(ConfigError::LineCommentMissing)
-            }
-        } else {
-            Err(ConfigError::CommentsMissing)
-        }
+    fn try_from(comment: CfgCommentType) -> Result<Self, Self::Error> {
+        let line = match comment.line {
+            Some(line) if !line.is_empty() => line,
+            _ => return Err(ConfigError::LineCommentMissing),
+        };
+
+        let block = match comment.block {
+            Some(block) => Some(block.try_into()?),
+            _ => None,
+        };
+        Ok(Self { line, block })
     }
 }
 
@@ -44,19 +37,19 @@ pub(crate) struct Block {
     pub(crate) close: String,
 }
 
-impl TryFrom<Option<CfgBlock>> for Block {
+impl TryFrom<CfgBlock> for Block {
     type Error = ConfigError;
 
-    fn try_from(value: Option<CfgBlock>) -> Result<Self, Self::Error> {
-        if let Some(block) = value {
-            if let (Some(open), Some(close)) = (block.open, block.close) {
-                Ok(Self { open, close })
-            } else {
-                Err(ConfigError::InvalidBlockComment)
-            }
-        } else {
-            Err(ConfigError::BlockCommentMissing)
-        }
+    fn try_from(cfg_block: CfgBlock) -> Result<Self, Self::Error> {
+        let open = match cfg_block.open {
+            Some(open) if !open.is_empty() => open,
+            _ => return Err(ConfigError::InvalidBlockComment),
+        };
+        let close = match cfg_block.close {
+            Some(close) if !close.is_empty() => close,
+            _ => return Err(ConfigError::InvalidBlockComment),
+        };
+        Ok(Self { open, close })
     }
 }
 
@@ -89,32 +82,30 @@ pub(crate) struct LangEntry {
     stats: LangStats,
 }
 
-impl TryFrom<Option<CfgLangEntry>> for LangEntry {
+impl TryFrom<CfgLangEntry> for LangEntry {
     type Error = ConfigError;
 
-    fn try_from(value: Option<CfgLangEntry>) -> Result<Self, Self::Error> {
-        if let Some(entry) = value {
-            if let Some(name) = entry.name {
-                if let Some(extensions) = entry.extensions {
-                    let spec = LangSpec::new(
-                        name,
-                        extensions.into_iter().map(OsString::from).collect(),
-                        entry.comments.try_into()?,
-                    );
-                    let stats = LangStats {
-                        files: HashSet::new(),
-                        loc: 0,
-                    };
-                    Ok(Self { spec, stats })
-                } else {
-                    Err(ConfigError::ExtensionMissing)
-                }
-            } else {
-                Err(ConfigError::LanguageNameMissing)
+    fn try_from(cfg_lang: CfgLangEntry) -> Result<Self, Self::Error> {
+        let name = match cfg_lang.name {
+            Some(name) => name,
+            _ => return Err(ConfigError::LanguageNameMissing),
+        };
+        let extensions = match cfg_lang.extensions {
+            Some(extensions) if !extensions.is_empty() => {
+                extensions.into_iter().map(OsString::from).collect()
             }
-        } else {
-            Err(ConfigError::LanguagesMissing)
-        }
+            _ => return Err(ConfigError::ExtensionMissing),
+        };
+        let comments = match cfg_lang.comments {
+            Some(comments) => comments.try_into()?,
+            _ => return Err(ConfigError::CommentsMissing),
+        };
+        let spec = LangSpec::new(name, extensions, comments);
+        let stats = LangStats {
+            files: HashSet::new(),
+            loc: 0,
+        };
+        Ok(Self { spec, stats })
     }
 }
 
@@ -124,6 +115,7 @@ pub struct LangRegistry {
     entries: Vec<LangEntry>,
     map_ext_id: HashMap<OsString, LangId>,
 }
+
 impl Default for LangRegistry {
     fn default() -> Self {
         LangRegistry::new()
@@ -180,6 +172,16 @@ impl LangRegistry {
             map_ext_id: HashMap::new(),
         }
     }
+    pub fn with_config(cfg: Config) -> Result<Self, ConfigError> {
+        let mut reg = LangRegistry::new();
+
+        reg.dir = cfg.dir;
+        for language in cfg.languages {
+            let entry: LangEntry = language.try_into()?;
+            reg.add_entry(entry.spec, entry.stats);
+        }
+        Ok(reg)
+    }
 
     pub fn with_builtins_langs(dir: &Path) -> Self {
         let mut reg = LangRegistry::new();
@@ -191,10 +193,10 @@ impl LangRegistry {
                 vec![OsString::from("rs")],
                 CommentType {
                     line: vec!["//".to_string(), "///".to_string(), "//!".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             ),
             LangStats {
@@ -208,10 +210,10 @@ impl LangRegistry {
                 vec![OsString::from("c"), OsString::from("h")],
                 CommentType {
                     line: vec!["//".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             ),
             LangStats {

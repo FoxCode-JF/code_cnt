@@ -26,9 +26,9 @@ name = "Python"
 extensions = ["py"]
 [languages.comments]
 line = ["#"]
-[languages.comments.block]
-open = ""
-close = ""
+# [languages.comments.block]
+# open = ""
+# close = ""
 
 
 [[languages]]
@@ -37,8 +37,8 @@ extensions = ["lua"]
 [languages.comments]
 line = ["--"]
 [languages.comments.block]
-open = ""
-close = ""
+open = "--[["
+close = "]]"
 
 
 [[languages]]

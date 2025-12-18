@@ -42,8 +42,13 @@ fn is_block_comment(line: &str, is_inside_block: &mut bool, comment_type: &Comme
     let mut code_present = false;
     let mut start = 0;
     let trimmed = line.trim();
-    let open = &comment_type.block.open;
-    let close = &comment_type.block.close;
+    let block = match &comment_type.block {
+        Some(block) => block,
+        _ => return false, // when block comments do not exist always return false
+    };
+
+    let open = &block.open;
+    let close = &block.close;
 
     if *is_inside_block {
         if let Some(idx) = trimmed.find(close) {
@@ -88,10 +93,10 @@ mod tests {
             let file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             let res = count_lines(file.path(), &comments);
             assert_eq!(res.unwrap(), 0);
@@ -101,10 +106,10 @@ mod tests {
         fn not_a_file() {
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             let res = count_lines(Path::new("./"), &comments);
             assert!(res.is_err());
@@ -115,10 +120,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -142,10 +147,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -172,10 +177,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -198,10 +203,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -220,10 +225,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -242,10 +247,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -264,10 +269,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -286,10 +291,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -306,10 +311,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -326,10 +331,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -346,10 +351,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -366,10 +371,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -388,10 +393,10 @@ mod tests {
             let mut file = NamedTempFile::new().unwrap();
             let comments = CommentType {
                 line: vec!["//".to_string()],
-                block: Block {
+                block: Some(Block {
                     open: "/*".to_string(),
                     close: "*/".to_string(),
-                },
+                }),
             };
             write!(
                 file,
@@ -520,10 +525,10 @@ mod tests {
                 &mut is_inside_block,
                 &CommentType {
                     line: vec!["//".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             );
             assert!(res);
@@ -538,10 +543,10 @@ mod tests {
                 &mut is_inside_block,
                 &CommentType {
                     line: vec!["//".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             );
             assert!(!res);
@@ -556,10 +561,10 @@ mod tests {
                 &mut is_inside_block,
                 &CommentType {
                     line: vec!["//".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             );
             assert!(!res);
@@ -574,10 +579,10 @@ mod tests {
                 &mut is_inside_block,
                 &CommentType {
                     line: vec!["//".to_string()],
-                    block: Block {
+                    block: Some(Block {
                         open: "/*".to_string(),
                         close: "*/".to_string(),
-                    },
+                    }),
                 },
             );
             assert!(res);
