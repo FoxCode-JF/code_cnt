@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use serde::{self, Deserialize};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -57,9 +56,7 @@ pub struct Config {
 impl Config {
     pub fn load(cfg_path: &str) -> Result<Config, ConfigError> {
         let text = std::fs::read_to_string(cfg_path)?;
-        println!("\tTEXT: {}", text);
         let cfg: Config = toml::from_str(&text)?;
-        //println!(" PATH: {}", cfg.dir.clone().unwrap().display());
         cfg.validate_dir()?;
         cfg.validate_languages()?;
         Ok(cfg)
