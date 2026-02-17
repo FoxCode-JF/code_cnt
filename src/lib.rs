@@ -1,3 +1,2 @@
-mod analysis;
-pub mod config_reader;
-pub mod registry;
+pub mod logic;
+pub mod ui;

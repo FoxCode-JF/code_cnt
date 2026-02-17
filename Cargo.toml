@@ -6,11 +6,17 @@ name = "code_cnt"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+tui = ["ratatui", "crossterm", "color-eyre"]
+
 [dependencies]
-clap = {version="4.5", features=["derive"]}
+clap = { version = "4.5", features = ["derive"] }
 walkdir = "2"
-ignore  = "0.4"
+ignore = "0.4"
 itertools = "0.14.0"
 tempfile = "3.23.0"
-serde = { version = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"] }
 toml = "0.9"
+ratatui = { version = "0.30.0", optional = true }
+crossterm = { version = "0.29.0", optional = true }
+color-eyre = { version = "0.6.5", optional = true }

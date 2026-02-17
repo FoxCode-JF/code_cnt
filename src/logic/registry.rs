@@ -1,5 +1,5 @@
-use crate::analysis::count_lines;
-use crate::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, Config, ConfigError};
+use crate::logic::analysis::count_lines;
+use crate::logic::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, Config, ConfigError};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
@@ -155,7 +155,7 @@ impl LangRegistry {
                     return Err(LangRegistryError::LangEntryDuplicated {
                         id: *e.get(),
                         ext: e.key().clone(),
-                    })
+                    });
                 }
             }
             self.map_ext_id

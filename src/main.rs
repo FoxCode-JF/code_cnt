@@ -1,6 +1,6 @@
 use clap::{CommandFactory, Parser};
-use code_cnt::config_reader::{Config, ConfigError};
-use code_cnt::registry::LangRegistry;
+use code_cnt::logic::config_reader::{Config, ConfigError};
+use code_cnt::logic::registry::LangRegistry;
 use std::path::PathBuf;
 
 #[derive(Parser)]
