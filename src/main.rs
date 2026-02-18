@@ -1,51 +1,17 @@
-use clap::{CommandFactory, Parser};
-use code_cnt::logic::config_reader::{Config, ConfigError};
-use code_cnt::logic::registry::LangRegistry;
-use std::path::PathBuf;
-
-#[derive(Parser)]
-#[command(author, version, about)]
-struct Cli {
-    /// Directory where the files are. Runs with default configuration.
-    #[arg(short, long)]
-    dir: Option<PathBuf>,
-
-    /// Config path
-    #[arg(short, long)]
-    cfg: Option<String>,
-}
+use ::code_cnt::logic::cli::{Cli, Mode};
+use clap::{self, Parser};
+use code_cnt::logic::cli;
+use code_cnt::logic::config_reader::ConfigError;
 
 fn main() -> Result<(), ConfigError> {
     let args = Cli::parse();
-    let arg_dir = args.dir;
-    let arg_cfg = args.cfg;
 
-    if arg_cfg.is_none() && arg_dir.is_none() {
-        Cli::command().print_long_help()?;
-        return Ok(());
-    }
+    let arg_mode = &args.mode;
 
-    let arg_dir = match arg_dir {
-        Some(d) => d,
-        None => {
-            let arg_cfg = match arg_cfg {
-                Some(p) => p,
-                None => {
-                    Cli::command().print_long_help()?;
-                    return Ok(());
-                }
-            };
-            let config = Config::load(&arg_cfg)?;
-            println!("Config read successfully...");
-            let mut reg = LangRegistry::with_config(config)?;
-            reg.update_stats()?;
-            reg.show_stats();
-            return Ok(());
+    match arg_mode {
+        Mode::Cli => cli::run_cli(&args),
+        Mode::Ui => {
+            todo!("implement sth like run_ui");
         }
-    };
-    println!("No external configuration provided. Running with defaults...");
-    let mut reg = LangRegistry::with_builtins_langs(&arg_dir);
-    reg.update_stats()?;
-    reg.show_stats();
-    Ok(())
+    }
 }
