@@ -1,9 +1,10 @@
 use ::code_cnt::logic::cli::{Cli, Mode};
+use ::code_cnt::ui::model;
 use clap::{self, Parser};
 use code_cnt::logic::cli;
-use code_cnt::logic::config_reader::ConfigError;
+use color_eyre::eyre::Result;
 
-fn main() -> Result<(), ConfigError> {
+fn main() -> Result<()> {
     let args = Cli::parse();
 
     let arg_mode = &args.mode;
@@ -11,7 +12,8 @@ fn main() -> Result<(), ConfigError> {
     match arg_mode {
         Mode::Cli => cli::run_cli(&args),
         Mode::Ui => {
-            todo!("implement sth like run_ui");
+            let model = model::Model::default();
+            model.run()
         }
     }
 }

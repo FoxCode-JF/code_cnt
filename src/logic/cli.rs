@@ -1,4 +1,4 @@
-use super::config_reader::{Config, ConfigError};
+use super::config_reader::Config;
 use super::registry::LangRegistry;
 use clap::{CommandFactory, Parser, ValueEnum};
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ pub struct Cli {
     cfg: Option<String>,
 }
 
-pub fn run_cli(args: &Cli) -> Result<(), ConfigError> {
+pub fn run_cli(args: &Cli) -> color_eyre::Result<()> {
     let arg_dir = &args.dir;
     let arg_cfg = &args.cfg;
 
