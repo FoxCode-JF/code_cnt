@@ -76,7 +76,7 @@ impl TryFrom<CfgCommentType> for CommentType {
 }
 
 #[derive(Debug, PartialEq)]
-struct LangSpec {
+pub(crate) struct LangSpec {
     name: String,
     extensions: Vec<OsString>,
     comments: CommentType,
@@ -90,18 +90,38 @@ impl LangSpec {
             comments,
         }
     }
+    pub fn lang_name(&self) -> &str {
+        &self.name
+    }
 }
 
 #[derive(Debug, PartialEq)]
-struct LangStats {
+pub(crate) struct LangStats {
     files: HashSet<PathBuf>,
     loc: u64,
+}
+
+impl LangStats {
+    pub fn files_cnt(&self) -> usize {
+        self.files.len()
+    }
+    pub fn loc(&self) -> &u64 {
+        &self.loc
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct LangEntry {
     spec: LangSpec,
     stats: LangStats,
+}
+impl LangEntry {
+    pub fn spec(&self) -> &LangSpec {
+        &self.spec
+    }
+    pub fn stats(&self) -> &LangStats {
+        &self.stats
+    }
 }
 
 impl TryFrom<CfgLangEntry> for LangEntry {
@@ -175,6 +195,15 @@ impl LangRegistry {
 
     fn get_entry_id(&self, ext: &OsStr) -> Option<LangId> {
         self.map_ext_id.get(ext).copied()
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &LangEntry> {
+        self.entries.iter()
+    }
+    pub fn dir(&self) -> &PathBuf {
+        &self.dir
+    }
+    pub fn set_dir(&mut self, dir: PathBuf) {
+        self.dir = dir;
     }
 
     fn clear_locs(&mut self) {
