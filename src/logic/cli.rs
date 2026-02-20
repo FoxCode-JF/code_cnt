@@ -13,7 +13,7 @@ pub enum Mode {
 #[command(author, version, about)]
 pub struct Cli {
     /// Software mode terminal UI or command line)
-    #[arg(short, long, value_enum, default_value_t = Mode::Cli)]
+    #[arg(short, long, value_enum, default_value_t = Mode::Ui)]
     pub mode: Mode,
 
     /// Directory where the files are. Runs with default configuration.

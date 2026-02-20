@@ -2,7 +2,9 @@ use color_eyre::Result;
 use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode},
-    widgets::Paragraph,
+    prelude::*,
+    style::Stylize,
+    widgets::{Block, Borders, Paragraph},
 };
 use std::time::Duration;
 
@@ -76,6 +78,47 @@ impl Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        frame.render_widget(Paragraph::new("Count Lines like a pro!"), frame.area());
+        let base_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+            .split(frame.area());
+
+        let bar_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Percentage(20),
+                Constraint::Percentage(20),
+                Constraint::Percentage(60),
+            ])
+            .split(base_layout[1]);
+
+        frame.render_widget(
+            Paragraph::new("Count Lines like a pro!")
+                .centered()
+                .cyan()
+                .block(Block::new().borders(Borders::BOTTOM)),
+            base_layout[0],
+        );
+        frame.render_widget(
+            Paragraph::new("Files Count")
+                .centered()
+                .cyan()
+                .block(Block::new().borders(Borders::RIGHT)),
+            bar_layout[0],
+        );
+        frame.render_widget(
+            Paragraph::new("LoC 1234")
+                .centered()
+                .cyan()
+                .block(Block::new().borders(Borders::LEFT | Borders::RIGHT)),
+            bar_layout[1],
+        );
+        frame.render_widget(
+            Paragraph::new("*************")
+                .centered()
+                .cyan()
+                .block(Block::new().borders(Borders::LEFT)),
+            bar_layout[2],
+        );
     }
 }

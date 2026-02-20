@@ -26,6 +26,7 @@ impl fmt::Display for LangRegistryError {
         }
     }
 }
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct LangId(usize);
 
@@ -459,7 +460,7 @@ mod tests {
         use std::ffi::{OsStr, OsString};
         use std::io::Write;
         use std::path::{Path, PathBuf};
-        use tempfile::{tempdir, Builder};
+        use tempfile::{Builder, tempdir};
 
         use crate::config_reader::{CfgBlock, CfgCommentType, CfgLangEntry, Config, ConfigError};
         use crate::registry::{
